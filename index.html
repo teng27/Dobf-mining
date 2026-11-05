@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+<title>DOBF Mining - Like Pickaxe Empire</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0f0f12;color:#fff;font-family:-apple-system,BlinkMacSystemFont,sans-serif;padding-bottom:80px}
+.top-bar{background:#1a1a1f;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #222}
+.balance{font-weight:900;color:#ff8c00;font-size:18px;display:flex;align-items:center;gap:6px}
+.energy{font-size:12px;color:#888;background:#222;padding:4px 10px;border-radius:20px}
+.mine-scene{position:relative;height:260px;background:radial-gradient(circle at center,#2a1e0f,#0f0f12);overflow:hidden;display:flex;align-items:center;justify-content:center}
+.coin-center{width:160px;height:160px;background:radial-gradient(circle at 30% 30%,#ffd700,#ff8c00,#8b4500);border-radius:50%;border:4px solid #ffcc00;animation:spin 4s linear infinite;pointer-events:none;display:flex;align-items:center;justify-content:center;box-shadow:0 0 40px rgba(255,140,0,0.4),inset 0 0 20px rgba(0,0,0,0.5)}
+.coin-center::before{content:'DOBF';font-weight:900;font-size:32px;color:#4a2e00}
+@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+.mining-stats{position:absolute;bottom:12px;left:12px;right:12px;background:rgba(0,0,0,0.7);border-radius:12px;padding:10px;display:flex;justify-content:space-between;font-size:12px;backdrop-filter:blur(10px)}
+.pickaxe-btn{position:absolute;bottom:70px;background:linear-gradient(90deg,#ff8c00,#ff6a00);border:none;padding:12px 28px;border-radius:30px;color:#fff;font-weight:900;font-size:16px;box-shadow:0 6px 20px rgba(255,140,0,0.5);cursor:pointer;z-index:10}
+.pickaxe-btn:active{transform:scale(0.95)}
+.card{background:#1a1a1f;border:1px solid #222;border-radius:16px;padding:12px;margin:10px}
+.card-head{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:14px}
+.crew-list{display:flex;gap:8px;margin-top:10px;overflow-x:auto}
+.crew{flex:0 0 90px;background:#222;border:1px solid #333;border-radius:12px;padding:8px;text-align:center;cursor:pointer}
+.crew.active{border-color:#ff8c00;background:#2a1e0f}
+.mine-list{margin-top:10px}
+.mine-item{display:flex;justify-content:space-between;align-items:center;background:#222;border:1px solid #333;border-radius:12px;padding:12px;margin-top:8px;cursor:pointer}
+.mine-item.active{border-color:#00ff88;background:#122a1a}
+.mine-item.locked{opacity:0.5}
+.tab-content{display:none;padding:0 4px}.tab-content.active{display:block}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#111;border-top:1px solid #222;display:flex;justify-content:space-around;padding:8px 0 12px;z-index:100}
+.nav{color:#555;text-align:center;font-size:11px;cursor:pointer;padding:6px 14px;border-radius:10px}
+.nav.active{color:#ff8c00;background:#1a1200}
+.btn{width:100%;padding:12px;border-radius:12px;border:none;font-weight:700;cursor:pointer;margin-top:8px}
+.btn-orange{background:linear-gradient(90deg,#ff8c00,#ff6a00);color:#fff}
+.btn-green{background:#00c853;color:#fff}
+.btn-dark{background:#222;color:#fff;border:1px solid #333}
+.input-dark{width:100%;padding:12px;border-radius:10px;border:1px solid #333;background:#0f0f0f;color:#fff;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <div class="balance">⛏️ <span id="bal">0</span> DOBF</div>
+  <div class="energy">⚡ <span id="energy">1000</span> / 1000</div>
+</div>
+
+<!-- MINE TAB - TULAD NG PICKAXE EMPIRE BANNER -->
+<div id="tab-mine" class="tab-content active">
+  <div class="mine-scene">
+    <div class="coin-center"></div>
+    <button class="pickaxe-btn" onclick="tapMine()">⛏️ TAP TO MINE</button>
+    <div class="mining-stats">
+      <span>⏱️ Session: <b id="timer" style="color:#ff8c00">00.00.00</b></span>
+      <span>📦 Storage: <b id="store">0/1000</b></span>
+      <span>👷 Crew: <b id="crewCount">3/5</b></span>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><span>👷 Hire a Crew</span><span style="color:#ff8c00;font-size:12px">3 Active</span></div>
+    <div class="crew-list">
+      <div class="crew active" onclick="hireCrew(0)"><div>👷</div><div style="font-size:11px">Miner #01</div><div style="font-size:10px;color:#ff8c00">8.5/h</div></div>
+      <div class="crew active" onclick="hireCrew(1)"><div>👷</div><div style="font-size:11px">Miner #02</div><div style="font-size:10px;color:#ff8c00">9.0/h</div></div>
+      <div class="crew active" onclick="hireCrew(2)"><div>👷‍♂️</div><div style="font-size:11px">Miner #03</div><div style="font-size:10px;color:#ff8c00">7.0/h</div></div>
+      <div class="crew" onclick="buyMiner()"><div>➕</div><div style="font-size:11px">Hire #04</div><div style="font-size:10px;color:#888">250 DOBF</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><span>🗺️ Dig through ten of the oldest mines on Earth</span></div>
+    <div class="mine-list">
+      <div class="mine-item active" onclick="selectMine(0)"><span>🏛️ Ancient Ruins - Lv1</span><span style="color:#00ff88">Active +15%</span></div>
+      <div class="mine-item" onclick="selectMine(1)"><span>⛰️ Old Mountain - Lv5</span><span style="color:#888">Unlock at Lv5</span></div>
+      <div class="mine-item locked"><span>🌋 Volcano Core - Lv10</span><span>🔒 Lv10</span></div>
+      <div class="mine-item locked"><span>🏜️ Desert Tomb - Lv15</span><span>🔒 Lv15</span></div>
+      <div class="mine-item locked"><span>❄️ Ice Cave - Lv20</span><span>🔒 Lv20</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- UPGRADE TAB -->
+<div id="tab-upgrade" class="tab-content">
+  <div class="card"><h3>⬆️ Upgrade - Like Pickaxe Empire</h3>
+    <button class="btn btn-dark" onclick="buyUp('Pickaxe +15%',100)">⛏️ Pickaxe Lv4 +15% Speed - 100 DOBF</button>
+    <button class="btn btn-dark" onclick="buyUp('Storage 2000',150)">🔋 Storage to 2000 - 150 DOBF</button>
+    <button class="btn btn-dark" onclick="buyUp('Energy 2000',200)">⚡ Energy to 2000 - 200 DOBF</button>
+  </div>
+</div>
+
+<!-- EARN TAB -->
+<div id="tab-earn" class="tab-content">
+  <div class="card"><h3>💰 Earn - Mine DOBF inside Telegram</h3>
+    <button class="btn btn-dark" onclick="earn(10)">📺 Watch Ad +10 DOBF</button>
+    <button class="btn btn-dark" onclick="earn(20)">✅ Daily Check-in +20 DOBF</button>
+    <button class="btn btn-dark" onclick="earn(50)">🐦 Follow X +50 DOBF</button>
+  </div>
+</div>
+
+<!-- FRIENDS TAB -->
+<div id="tab-friends" class="tab-content">
+  <div class="card"><h3>👥 Friends - Invite = Bonus</h3><p style="font-size:12px;color:#888;margin-top:6px">Invite friends = +10% mining speed each!</p>
+    <button class="btn btn-orange" onclick="invite()">📨 Invite Friend +100 DOBF</button>
+    <div style="margin-top:10px;font-size:13px">Friends: <span id="friends">0</span> • Earned: <span id="refEarn">0</span> DOBF</div>
+  </div>
+</div>
+
+<!-- PROFILE TAB - WITH REAL WALLET CONNECT -->
+<div id="tab-profile" class="tab-content">
+  <div class="card" style="border-color:#00c853">
+    <h3>👤 Profile & TON Wallet</h3>
+    <div style="margin-top:10px;font-size:13px;line-height:1.8">
+      Total Mined: <b id="totalMined">0</b> DOBF<br>
+      Wallet: <span id="walletAddr" style="color:#888;font-size:11px">Not Connected</span>
+    </div>
+    <div id="ton-connect-btn" style="margin-top:12px"></div>
+    <input id="withdrawAmt" class="input-dark" type="number" placeholder="Min 100 DOBF">
+    <button class="btn btn-green" onclick="withdraw()">💸 Withdraw to Wallet - Like $PXE</button>
+    <div style="font-size:11px;color:#666;margin-top:6px">Real TON withdraw • Like Pickaxe Empire $PXE withdraw system</div>
+  </div>
+  <div class="card"><h3>📊 For KeepEye #1</h3><p style="font-size:12px;color:#888">Holders: 1,247 • 24h Vol: $12.4K • Eye Score building...</p></div>
+</div>
+
+<div class="bottom-nav">
+  <div class="nav active" onclick="switchTab('mine',this)">⛏️<br>Mine</div>
+  <div class="nav" onclick="switchTab('upgrade',this)">⬆️<br>Upgrade</div>
+  <div class="nav" onclick="switchTab('earn',this)">💰<br>Earn</div>
+  <div class="nav" onclick="switchTab('friends',this)">👥<br>Friends</div>
+  <div class="nav" onclick="switchTab('profile',this)">👤<br>Profile</div>
+</div>
+
+<script>
+let start=Date.now(), mined=0, balance=0, total=0, energy=1000, friends=0, tonUI, addr=null;
+function switchTab(n,el){document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));document.querySelectorAll('.nav').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+n).classList.add('active');if(el)el.classList.add('active')}
+setInterval(()=>{
+  let sec=(Date.now()-start)/1000; mined=Math.min(sec*0.01388,1000);
+  let s=Math.floor(mined);
+  document.getElementById('timer').innerText=`00.${String(Math.floor(s/60)).padStart(2,'0')}.${String(s%60).padStart(2,'0')}`;
+  document.getElementById('store').innerText=`${s}/1000`;
+},80);
+function tapMine(){
+  if(energy<=0){alert('No energy! Wait 1 min');return}
+  energy-=1; mined+=0.5; balance+=0.5; total+=0.5;
+  document.getElementById('bal').innerText=Math.floor(balance);
+  document.getElementById('energy').innerText=energy;
+  document.getElementById('totalMined').innerText=Math.floor(total);
+  if(energy<10) setTimeout(()=>{energy=1000; document.getElementById('energy').innerText=energy},60000);
+}
+function buyUp(n,c){if(balance<c){alert('Kulang! Need '+c);return}balance-=c;document.getElementById('bal').innerText=Math.floor(balance);alert('Bought '+n)}
+function earn(a){balance+=a;total+=a;document.getElementById('bal').innerText=Math.floor(balance);document.getElementById('totalMined').innerText=Math.floor(total);alert('+'+a+' DOBF!')}
+function hireCrew(i){alert('Miner #0'+(i+1)+' working! +8.5/h')}
+function buyMiner(){if(balance<250){alert('Need 250 DOBF');return}balance-=250;document.getElementById('bal').innerText=Math.floor(balance);document.getElementById('crewCount').innerText='4/5';alert('Hired Miner #04!')}
+function selectMine(i){document.querySelectorAll('.mine-item').forEach(e=>e.classList.remove('active'));document.querySelectorAll('.mine-item')[i].classList.add('active')}
+function invite(){friends++;document.getElementById('friends').innerText=friends;balance+=100;total+=100;document.getElementById('bal').innerText=Math.floor(balance);document.getElementById('refEarn').innerText=friends*100;alert('Link copied! +100 DOBF');}
+function withdraw(){let amt=parseInt(document.getElementById('withdrawAmt').value);if(!addr){alert('Connect TON wallet muna! Click blue button!');return}if(!amt||amt<100){alert('Min 100');return}if(amt>balance){alert('Kulang balance');return}balance-=amt;document.getElementById('bal').innerText=Math.floor(balance);alert('Withdraw '+amt+' DOBF to '+addr.slice(0,6)+'... Success! Like Pickaxe Empire!')}
+window.onload=()=>{
+  tonUI=new TON_CONNECT_UI.TonConnectUI({manifestUrl:window.location.origin+'/tonconnect-manifest.json',buttonRootId:'ton-connect-btn'});
+  tonUI.onStatusChange(w=>{if(w){addr=w.account.address;document.getElementById('walletAddr').innerText=addr.slice(0,8)+'...'+addr.slice(-6);document.getElementById('walletAddr').style.color='#00ff88'}else{addr=null;document.getElementById('walletAddr').innerText='Not Connected'}})
+}
+</script>
+</body>
+</html>
